@@ -1,10 +1,11 @@
 // ========================
-// 1. 初始化 Supabase
+// 1. 初始化 Supabase 客户端（变量名改为 supabaseClient）
 // ========================
-const SUPABASE_URL = "https://afvukqjluoxzuouhiufw.supabase.co"; //  Project URL
-const SUPABASE_ANON_KEY = "sb_publishable_1qYYVcrzSjwy8_-41Eeuig_dAjU9Zqd"; //  Publishable key
+const SUPABASE_URL = "https://afvukqjluoxzuouhiufw.supabase.co"; // 替换为你的 Project URL
+const SUPABASE_ANON_KEY = "sb_publishable_1qYYVcrzSjwy8_-41Eeuig_dAjU9Zqd"; // 替换为你的 Publishable key
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// 使用 window.supabase.createClient 创建实例，命名为 supabaseClient 避免冲突
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // 昵称 → 内部邮箱映射
 const NICKNAME_MAP = {
@@ -44,9 +45,9 @@ const discussionMessages = document.getElementById("discussion-messages");
 const discussionInput = document.getElementById("discussion-input");
 const sendDiscussionBtn = document.getElementById("send-discussion-btn");
 
-// 对话上下文（每次退出释放）
+// 对话上下文（每次登录清空，符合不保存历史）
 let conversationMessages = [
-  { role: "system", content: "你现在需要作为一个学习编程的助手回答问题，主要是简单的Python程序。在正常交流时请以中文交流。你在写程序的时候，不用追随太高级的语法，可以多用一些比较基础的内容。" }
+  { role: "system", content: "你是一个有帮助的助手，使用中文回答。" }
 ];
 
 // ========================
@@ -65,7 +66,8 @@ loginBtn.addEventListener("click", async () => {
     return;
   }
 
-  const { data, error } = await supabase.auth.signInWithPassword({
+  // 使用 supabaseClient 代替 supabase
+  const { data, error } = await supabaseClient.auth.signInWithPassword({
     email,
     password
   });
@@ -90,7 +92,7 @@ function updateUIWithUser() {
 }
 
 logoutBtn.addEventListener("click", async () => {
-  await supabase.auth.signOut();
+  await supabaseClient.auth.signOut();
   currentUser = null;
   chatContainer.classList.add("hidden");
   loginContainer.classList.remove("hidden");
@@ -99,14 +101,14 @@ logoutBtn.addEventListener("click", async () => {
   loginError.textContent = "";
   chatMessages.innerHTML = "";
   conversationMessages = [
-    { role: "system", content: "你现在需要作为一个学习编程的助手回答问题，主要是简单的Python程序。在正常交流时请以中文交流。你在写程序的时候，不用追随太高级的语法，可以多用一些比较基础的内容。" }
+    { role: "system", content: "你是一个有帮助的助手，使用中文回答。" }
   ];
   modalOverlay.classList.add("hidden");
 });
 
 // 会话保持：刷新页面时检查登录状态
 async function checkSession() {
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await supabaseClient.auth.getSession();
   if (session) {
     currentUser = session.user;
     const email = session.user.email;
@@ -123,7 +125,7 @@ async function checkSession() {
       updateUIWithUser();
       loadDiscussion();
     } else {
-      await supabase.auth.signOut();
+      await supabaseClient.auth.signOut();
     }
   }
 }
@@ -144,7 +146,6 @@ async function sendMessage() {
   const text = userInput.value.trim();
   if (!text || !currentUser) return;
 
-  // 添加用户消息
   appendMessage("user", text);
   conversationMessages.push({ role: "user", content: text });
   userInput.value = "";
@@ -155,7 +156,7 @@ async function sendMessage() {
   let fullReply = "";
 
   try {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await supabaseClient.auth.getSession();
     const accessToken = session?.access_token;
     if (!accessToken) throw new Error("No access token");
 
@@ -241,7 +242,7 @@ modalOverlay.addEventListener("click", (e) => {
 
 async function loadDiscussion() {
   if (!currentUser) return;
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from("messages")
     .select("*")
     .order("created_at", { ascending: true });
@@ -279,7 +280,7 @@ async function sendDiscussion() {
   const content = discussionInput.value.trim();
   if (!content || !currentUser) return;
 
-  const { error } = await supabase
+  const { error } = await supabaseClient
     .from("messages")
     .insert([
       {
