@@ -213,7 +213,7 @@ document.addEventListener("click", (e) => {
 // ========================
 async function testApiConnection() {
   apiTestStatus.classList.remove("hidden", "success", "error");
-  apiTestStatus.textContent = "⏳ 正在测试 API 连通性...";
+  apiTestStatus.textContent = ">> 正在测试 API 连通性...";
   apiTestStatus.className = "api-status-message info";
   addLog("INFO", "API", "Initiating API connectivity test");
 
@@ -242,7 +242,7 @@ async function testApiConnection() {
     }
 
     if (response.ok) {
-      apiTestStatus.textContent = "✅ API 连接正常";
+      apiTestStatus.textContent = "[OK] API 连接正常";
       apiTestStatus.className = "api-status-message success";
       addLog("INFO", "API", "Connectivity test passed", { status: response.status });
     } else {
@@ -250,7 +250,7 @@ async function testApiConnection() {
       throw new Error(`HTTP ${response.status}: ${errText}`);
     }
   } catch (error) {
-    apiTestStatus.textContent = `❌ API 连接失败: ${error.message}`;
+    apiTestStatus.textContent = `[ERR] API 连接失败: ${error.message}`;
     apiTestStatus.className = "api-status-message error";
     addLog("ERROR", "API", "Connectivity test failed", { error: error.message });
   }
