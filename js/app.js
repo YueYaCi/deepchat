@@ -108,7 +108,7 @@ const apiRespLen = document.getElementById("api-resp-len");
 // 4. API 信息更新
 // ========================
 function updateApiInfo(status, respLen = null) {
-  apiModel.textContent = "deepseek-chat";
+  apiModel.textContent = "deepseek-v4-pro";
   apiRounds.textContent = conversationMessages.length - 1;
   apiLastTime.textContent = new Date().toLocaleTimeString("zh-CN", { hour12: false });
   apiStatus.textContent = status;
@@ -243,7 +243,10 @@ async function sendMessage() {
   const startTime = performance.now();
   updateApiInfo("Requesting...");
 
-  addLog("INFO", "API", "Sending chat request to Edge Function", { rounds: conversationMessages.length - 1 });
+  addLog("INFO", "API", "Sending chat request to Edge Function", {
+  model: "deepseek-v4-pro",
+  rounds: conversationMessages.length - 1
+});
 
   try {
     const { data: { session } } = await supabaseClient.auth.getSession();
