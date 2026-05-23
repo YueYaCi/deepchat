@@ -4,13 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
   <title>Deep Chat</title>
-  <!-- Supabase JS SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- 自定义样式 -->
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <!-- ==================== 登录界面 ==================== -->
+  <!-- 登录界面 -->
   <div id="login-container">
     <h2>Deep Chat</h2>
     <div class="input-group">
@@ -25,19 +23,15 @@
     <div id="login-error"></div>
   </div>
 
-  <!-- ==================== 主界面（三栏布局） ==================== -->
+  <!-- 主界面 -->
   <div id="app-container" class="hidden">
-
-    <!-- ---------- 左侧面板：用户 + API 状态 + 日志 ---------- -->
+    <!-- 左侧面板 -->
     <div id="left-panel">
-      <!-- 用户信息 -->
       <div id="user-info">
         <img id="avatar-small" src="" alt="avatar">
         <span id="nickname-display"></span>
         <button id="logout-btn" title="退出">⏻</button>
       </div>
-
-      <!-- API 状态 -->
       <div id="api-info">
         <div class="info-title">🔧 API 状态</div>
         <div class="info-item"><span>模型</span><span id="api-model">deepseek-v4-pro</span></div>
@@ -46,29 +40,21 @@
         <div class="info-item"><span>最后请求</span><span id="api-last-time">—</span></div>
         <div class="info-item"><span>响应状态</span><span id="api-status">—</span></div>
         <div class="info-item"><span>最后回复长度</span><span id="api-resp-len">—</span></div>
-
-        <!-- 操作区：模型选择 + API 测试 -->
         <div id="api-actions">
           <div id="api-test-status" class="api-status-message hidden"></div>
           <div class="actions-row">
-            <button id="model-select-btn" class="api-action-btn">
-              <span class="btn-icon">|</span> 模型 <
-            </button>
-            <button id="api-test-btn" class="api-action-btn">
-              <span class="btn-icon">|</span> 测试 <
-            </button>
+            <button id="model-select-btn" class="api-action-btn"><span class="btn-icon">|</span> 模型<</button>
+            <button id="api-test-btn" class="api-action-btn"><span class="btn-icon">|</span> 测试<</button>
           </div>
         </div>
       </div>
-
-      <!-- 日志区 -->
       <div id="log-area">
         <div class="log-title">日志</div>
         <div id="log-content"></div>
       </div>
     </div>
 
-    <!-- ---------- 中间面板：对话区 ---------- -->
+    <!-- 中间对话面板 -->
     <div id="chat-panel">
       <div id="chat-messages"></div>
       <div id="input-area">
@@ -77,7 +63,7 @@
       </div>
     </div>
 
-    <!-- ---------- 右侧面板：讨论区 ---------- -->
+    <!-- 右侧讨论区 -->
     <div id="discussion-panel">
       <div id="discussion-header">
         <h3>讨论区</h3>
@@ -88,10 +74,8 @@
         <button id="send-discussion-btn">发送</button>
       </div>
     </div>
-
   </div>
 
-  <!-- 自定义脚本 -->
   <script src="js/app.js"></script>
 </body>
 </html>

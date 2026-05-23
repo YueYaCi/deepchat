@@ -1,12 +1,15 @@
 // ========================
-// 1. 初始化 Supabase 客户端
+// 配置（请替换为你自己的 Supabase 信息）
 // ========================
-const SUPABASE_URL = "https://afvukqjluoxzuouhiufw.supabase.co";   //  Project URL
-const SUPABASE_ANON_KEY = "sb_publishable_1qYYVcrzSjwy8_-41Eeuig_dAjU9Zqd";   //  Publishable key
+const SUPABASE_URL = "https://afvukqjluoxzuouhiufw.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_1qYYVcrzSjwy8_-41Eeuig_dAjU9Zqd";
 
+// ========================
+// 等待 DOM 加载完成后执行所有逻辑
+// ========================
 document.addEventListener('DOMContentLoaded', () => {
 
-  // ---------- 创建 Supabase 客户端 ----------
+  // ---------- 初始化 Supabase 客户端 ----------
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   // ---------- 昵称映射 ----------
@@ -29,39 +32,41 @@ document.addEventListener('DOMContentLoaded', () => {
     { role: "system", content: "你是一个有帮助的助手，使用中文回答。" }
   ];
 
-  // ---------- 获取所有 DOM 元素 ----------
-  const loginContainer = document.getElementById("login-container");
-  const appContainer = document.getElementById("app-container");
-  const nicknameInput = document.getElementById("nickname-input");
-  const passwordInput = document.getElementById("password-input");
-  const loginBtn = document.getElementById("login-btn");
-  const loginError = document.getElementById("login-error");
+  // ---------- DOM 元素（使用安全的获取方式，若获取不到则为 null） ----------
+  const $ = (id) => document.getElementById(id);
 
-  const avatarSmall = document.getElementById("avatar-small");
-  const nicknameDisplay = document.getElementById("nickname-display");
-  const logoutBtn = document.getElementById("logout-btn");
+  const loginContainer = $("login-container");
+  const appContainer = $("app-container");
+  const nicknameInput = $("nickname-input");
+  const passwordInput = $("password-input");
+  const loginBtn = $("login-btn");
+  const loginError = $("login-error");
 
-  const chatMessages = document.getElementById("chat-messages");
-  const userInput = document.getElementById("user-input");
-  const sendBtn = document.getElementById("send-btn");
+  const avatarSmall = $("avatar-small");
+  const nicknameDisplay = $("nickname-display");
+  const logoutBtn = $("logout-btn");
 
-  const discussionMessages = document.getElementById("discussion-messages");
-  const discussionInput = document.getElementById("discussion-input");
-  const sendDiscussionBtn = document.getElementById("send-discussion-btn");
+  const chatMessages = $("chat-messages");
+  const userInput = $("user-input");
+  const sendBtn = $("send-btn");
 
-  const apiModel = document.getElementById("api-model");
-  const apiUrl = document.getElementById("api-url");
-  const apiRounds = document.getElementById("api-rounds");
-  const apiLastTime = document.getElementById("api-last-time");
-  const apiStatus = document.getElementById("api-status");
-  const apiRespLen = document.getElementById("api-resp-len");
+  const discussionMessages = $("discussion-messages");
+  const discussionInput = $("discussion-input");
+  const sendDiscussionBtn = $("send-discussion-btn");
 
-  const modelSelectBtn = document.getElementById("model-select-btn");
-  const apiTestBtn = document.getElementById("api-test-btn");
-  const apiTestStatus = document.getElementById("api-test-status");
-  const apiInfoDiv = document.getElementById("api-info");
+  const apiModel = $("api-model");
+  const apiUrl = $("api-url");
+  const apiRounds = $("api-rounds");
+  const apiLastTime = $("api-last-time");
+  const apiStatus = $("api-status");
+  const apiRespLen = $("api-resp-len");
 
-  const logContent = document.getElementById("log-content");
+  const modelSelectBtn = $("model-select-btn");
+  const apiTestBtn = $("api-test-btn");
+  const apiTestStatus = $("api-test-status");
+  const apiInfoDiv = $("api-info");
+
+  const logContent = $("log-content");
 
   // ---------- 工具函数 ----------
   const escapeHtml = (text) => {
@@ -76,14 +81,13 @@ document.addEventListener('DOMContentLoaded', () => {
     textarea.style.height = Math.min(textarea.scrollHeight, maxHeight) + 'px';
   };
 
-  // 安全日志输出（容器不存在时也能用 console）
+  // 日志输出（同时输出到日志区和控制台）
   const addLog = (level, component, message, details = {}) => {
     const now = new Date();
     const timeStr = now.toTimeString().slice(0, 8) + "." + String(now.getMilliseconds()).padStart(3, "0");
     const detailStr = Object.entries(details).map(([k, v]) => `${k}=${v}`).join(" ");
     const lineText = `${timeStr} ${level.padEnd(5)} [${component.padEnd(7)}] ${message}${detailStr ? " — " + detailStr : ""}`;
 
-    // 写入界面日志（如果容器存在）
     if (logContent) {
       const entryDiv = document.createElement("div");
       entryDiv.className = `log-entry ${level.toLowerCase()}`;
@@ -92,7 +96,6 @@ document.addEventListener('DOMContentLoaded', () => {
       logContent.scrollTop = logContent.scrollHeight;
     }
 
-    // 控制台输出
     const consoleMsg = { time: now.toISOString(), level, component, message, details };
     switch (level) {
       case "ERROR": console.error(consoleMsg); break;
@@ -116,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateApiUrlDisplay();
   };
 
-  // ---------- 模型选择逻辑 ----------
+  // ---------- 模型选择下拉菜单 ----------
   const toggleModelDropdown = () => {
     const existing = document.querySelector(".model-dropdown");
     if (existing) {
@@ -163,7 +166,11 @@ document.addEventListener('DOMContentLoaded', () => {
     addLog("INFO", "APP", "Conversation context cleared due to model switch");
   };
 
-  modelSelectBtn?.addEventListener("click", toggleModelDropdown);
+  // 绑定模型选择按钮
+  if (modelSelectBtn) {
+    modelSelectBtn.addEventListener("click", toggleModelDropdown);
+  }
+  // 点击页面其他区域关闭下拉菜单
   document.addEventListener("click", (e) => {
     if (modelDropdownVisible && !e.target.closest("#api-info")) {
       document.querySelector(".model-dropdown")?.remove();
@@ -222,65 +229,72 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 5000);
   };
 
-  apiTestBtn?.addEventListener("click", testApiConnection);
+  if (apiTestBtn) {
+    apiTestBtn.addEventListener("click", testApiConnection);
+  }
 
-  // ---------- 登录 / 退出 ----------
-  loginBtn?.addEventListener("click", async () => {
-    const nickname = nicknameInput?.value.trim() || "";
-    const password = passwordInput?.value || "";
-    if (!nickname || !password) {
-      if (loginError) loginError.textContent = "请输入昵称和密码";
-      addLog("WARN", "AUTH", "Login attempt with empty credentials", { nickname, hasPassword: !!password });
-      return;
-    }
-    const email = NICKNAME_MAP[nickname];
-    if (!email) {
-      if (loginError) loginError.textContent = "昵称不存在";
-      addLog("WARN", "AUTH", "Login attempt with invalid nickname", { nickname });
-      return;
-    }
+  // ---------- 登录功能 ----------
+  if (loginBtn) {
+    loginBtn.addEventListener("click", async () => {
+      const nickname = nicknameInput?.value.trim() || "";
+      const password = passwordInput?.value || "";
+      if (!nickname || !password) {
+        if (loginError) loginError.textContent = "请输入昵称和密码";
+        addLog("WARN", "AUTH", "Login attempt with empty credentials", { nickname, hasPassword: !!password });
+        return;
+      }
+      const email = NICKNAME_MAP[nickname];
+      if (!email) {
+        if (loginError) loginError.textContent = "昵称不存在";
+        addLog("WARN", "AUTH", "Login attempt with invalid nickname", { nickname });
+        return;
+      }
 
-    addLog("INFO", "AUTH", "Attempting sign-in", { nickname, email });
-    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      addLog("INFO", "AUTH", "Attempting sign-in", { nickname, email });
+      const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
 
-    if (error) {
-      if (loginError) loginError.textContent = "登录失败：" + error.message;
-      addLog("ERROR", "AUTH", "Sign-in failed", { error: error.message, status: error.status });
-      return;
-    }
+      if (error) {
+        if (loginError) loginError.textContent = "登录失败：" + error.message;
+        addLog("ERROR", "AUTH", "Sign-in failed", { error: error.message, status: error.status });
+        return;
+      }
 
-    currentUser = data.user;
-    currentNickname = nickname;
-    currentAvatar = `avatars/${nickname}.png`;
-    addLog("INFO", "AUTH", "Sign-in successful", { userId: currentUser.id, nickname });
+      currentUser = data.user;
+      currentNickname = nickname;
+      currentAvatar = `avatars/${nickname}.png`;
+      addLog("INFO", "AUTH", "Sign-in successful", { userId: currentUser.id, nickname });
 
-    loginContainer?.classList.add("hidden");
-    appContainer?.classList.remove("hidden");
-    updateUserUI();
-    loadDiscussion();
-    updateApiInfo("Idle");
-    addLog("INFO", "APP", "Chat UI loaded", { user: nickname });
-  });
+      loginContainer?.classList.add("hidden");
+      appContainer?.classList.remove("hidden");
+      updateUserUI();
+      loadDiscussion();
+      updateApiInfo("Idle");
+      addLog("INFO", "APP", "Chat UI loaded", { user: nickname });
+    });
+  }
 
   const updateUserUI = () => {
     if (avatarSmall) avatarSmall.src = currentAvatar;
     if (nicknameDisplay) nicknameDisplay.textContent = currentNickname;
   };
 
-  logoutBtn?.addEventListener("click", async () => {
-    addLog("INFO", "AUTH", "Manual sign-out initiated", { nickname: currentNickname });
-    await supabaseClient.auth.signOut();
-    currentUser = null;
-    appContainer?.classList.add("hidden");
-    loginContainer?.classList.remove("hidden");
-    if (nicknameInput) nicknameInput.value = "";
-    if (passwordInput) passwordInput.value = "";
-    if (loginError) loginError.textContent = "";
-    if (chatMessages) chatMessages.innerHTML = "";
-    conversationMessages = [{ role: "system", content: "你是一个有帮助的助手，使用中文回答。" }];
-    if (logContent) logContent.innerHTML = "";
-    addLog("INFO", "AUTH", "User signed out, UI reset");
-  });
+  // 退出登录
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", async () => {
+      addLog("INFO", "AUTH", "Manual sign-out initiated", { nickname: currentNickname });
+      await supabaseClient.auth.signOut();
+      currentUser = null;
+      appContainer?.classList.add("hidden");
+      loginContainer?.classList.remove("hidden");
+      if (nicknameInput) nicknameInput.value = "";
+      if (passwordInput) passwordInput.value = "";
+      if (loginError) loginError.textContent = "";
+      if (chatMessages) chatMessages.innerHTML = "";
+      conversationMessages = [{ role: "system", content: "你是一个有帮助的助手，使用中文回答。" }];
+      if (logContent) logContent.innerHTML = "";
+      addLog("INFO", "AUTH", "User signed out, UI reset");
+    });
+  }
 
   // 会话保持
   const checkSession = async () => {
@@ -313,14 +327,16 @@ document.addEventListener('DOMContentLoaded', () => {
   checkSession();
 
   // ---------- 对话功能 ----------
-  sendBtn?.addEventListener("click", sendMessage);
-  userInput?.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  });
-  userInput?.addEventListener("input", () => autoResize(userInput));
+  if (sendBtn) sendBtn.addEventListener("click", sendMessage);
+  if (userInput) {
+    userInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+    userInput.addEventListener("input", () => autoResize(userInput));
+  }
 
   async function sendMessage() {
     const text = userInput?.value.trim() || "";
@@ -335,7 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
       userInput.value = "";
       autoResize(userInput);
     }
-    sendBtn.disabled = true;
+    if (sendBtn) sendBtn.disabled = true;
 
     const assistantMsgDiv = appendMessage("assistant", "");
     let fullReply = "";
@@ -419,8 +435,8 @@ document.addEventListener('DOMContentLoaded', () => {
       addLog("ERROR", "API", "Chat request failed", { error: error.message });
       updateApiInfo("Failed");
     } finally {
-      sendBtn.disabled = false;
-      chatMessages.scrollTop = chatMessages.scrollHeight;
+      if (sendBtn) sendBtn.disabled = false;
+      if (chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
     }
   }
 
@@ -443,14 +459,27 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ---------- 讨论区功能 ----------
-  discussionInput?.addEventListener("input", () => autoResize(discussionInput));
-  discussionInput?.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+  // 强制绑定按钮和输入框（不使用可选链，确保一定绑定）
+  if (sendDiscussionBtn) {
+    sendDiscussionBtn.addEventListener("click", (e) => {
       e.preventDefault();
       sendDiscussion();
-    }
-  });
-  sendDiscussionBtn?.addEventListener("click", sendDiscussion);
+    });
+  } else {
+    console.error("讨论区发送按钮未找到，请检查 HTML 中 ID 是否为 send-discussion-btn");
+  }
+
+  if (discussionInput) {
+    discussionInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendDiscussion();
+      }
+    });
+    discussionInput.addEventListener("input", () => autoResize(discussionInput));
+  } else {
+    console.error("讨论区输入框未找到，请检查 HTML 中 ID 是否为 discussion-input");
+  }
 
   async function loadDiscussion() {
     if (!currentUser) return;
@@ -466,22 +495,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     addLog("INFO", "DISCUSS", "Rendering discussion panel", { count: data.length });
-    discussionMessages.innerHTML = "";
-    data.forEach(msg => {
-      const msgDiv = document.createElement("div");
-      msgDiv.className = "discuss-msg";
-      msgDiv.innerHTML = `
-        <img class="discuss-avatar" src="avatars/${msg.nickname}.png" alt="">
-        <div>
-          <div class="discuss-content">
-            <span class="discuss-nickname">${msg.nickname}</span>${escapeHtml(msg.content)}
+    if (discussionMessages) {
+      discussionMessages.innerHTML = "";
+      data.forEach(msg => {
+        const msgDiv = document.createElement("div");
+        msgDiv.className = "discuss-msg";
+        msgDiv.innerHTML = `
+          <img class="discuss-avatar" src="avatars/${msg.nickname}.png" alt="">
+          <div>
+            <div class="discuss-content">
+              <span class="discuss-nickname">${msg.nickname}</span>${escapeHtml(msg.content)}
+            </div>
+            <div class="discuss-time">${new Date(msg.created_at).toLocaleString("zh-CN")}</div>
           </div>
-          <div class="discuss-time">${new Date(msg.created_at).toLocaleString("zh-CN")}</div>
-        </div>
-      `;
-      discussionMessages.appendChild(msgDiv);
-    });
-    discussionMessages.scrollTop = discussionMessages.scrollHeight;
+        `;
+        discussionMessages.appendChild(msgDiv);
+      });
+      discussionMessages.scrollTop = discussionMessages.scrollHeight;
+    }
   }
 
   async function sendDiscussion() {
@@ -515,5 +546,4 @@ document.addEventListener('DOMContentLoaded', () => {
     await loadDiscussion();
   }
 
-  // 绑定模型按钮点击（已在上方）
 });
