@@ -1,13 +1,12 @@
 // ========================
-// 1. 初始化 Supabase 客户端（变量名改为 supabaseClient）
+// 1. 初始化 Supabase 客户端
 // ========================
-const SUPABASE_URL = "https://afvukqjluoxzuouhiufw.supabase.co"; // 替换为你的 Project URL
-const SUPABASE_ANON_KEY = "sb_publishable_1qYYVcrzSjwy8_-41Eeuig_dAjU9Zqd"; // 替换为你的 Publishable key
+const SUPABASE_URL = "https://afvukqjluoxzuouhiufw.supabase.co";   // Project URL
+const SUPABASE_ANON_KEY = "sb_publishable_1qYYVcrzSjwy8_-41Eeuig_dAjU9Zqd";                     // Publishable key
 
-// 使用 window.supabase.createClient 创建实例，命名为 supabaseClient 避免冲突
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// 昵称 → 内部邮箱映射
+// 昵称映射
 const NICKNAME_MAP = {
   "兵": "bing@chat.local",
   "沣": "feng@chat.local",
@@ -15,43 +14,81 @@ const NICKNAME_MAP = {
   "周": "zhou@chat.local"
 };
 
-// 当前用户状态
+// 当前状态
 let currentUser = null;
 let currentNickname = "";
 let currentAvatar = "";
 
-// ========================
-// 2. DOM 元素引用
-// ========================
-const loginContainer = document.getElementById("login-container");
-const chatContainer = document.getElementById("chat-container");
-const nicknameInput = document.getElementById("nickname-input");
-const passwordInput = document.getElementById("password-input");
-const loginBtn = document.getElementById("login-btn");
-const loginError = document.getElementById("login-error");
-
-const avatarSmall = document.getElementById("avatar-small");
-const nicknameDisplay = document.getElementById("nickname-display");
-const discussionBtn = document.getElementById("discussion-btn");
-const logoutBtn = document.getElementById("logout-btn");
-
-const chatMessages = document.getElementById("chat-messages");
-const userInput = document.getElementById("user-input");
-const sendBtn = document.getElementById("send-btn");
-
-const modalOverlay = document.getElementById("modal-overlay");
-const closeDiscussionBtn = document.getElementById("close-discussion");
-const discussionMessages = document.getElementById("discussion-messages");
-const discussionInput = document.getElementById("discussion-input");
-const sendDiscussionBtn = document.getElementById("send-discussion-btn");
-
-// 对话上下文（每次登录清空，符合不保存历史）
+// 对话上下文
 let conversationMessages = [
   { role: "system", content: "你是一个有帮助的助手，使用中文回答。" }
 ];
 
 // ========================
-// 3. 登录与退出
+// 2. DOM 元素
+// ========================
+// 登录
+const loginContainer = document.getElementById("login-container");
+const appContainer = document.getElementById("app-container");
+const nicknameInput = document.getElementById("nickname-input");
+const passwordInput = document.getElementById("password-input");
+const loginBtn = document.getElementById("login-btn");
+const loginError = document.getElementById("login-error");
+
+// 用户
+const avatarSmall = document.getElementById("avatar-small");
+const nicknameDisplay = document.getElementById("nickname-display");
+const logoutBtn = document.getElementById("logout-btn");
+
+// 对话
+const chatMessages = document.getElementById("chat-messages");
+const userInput = document.getElementById("user-input");
+const sendBtn = document.getElementById("send-btn");
+
+// 讨论区
+const discussionMessages = document.getElementById("discussion-messages");
+const discussionInput = document.getElementById("discussion-input");
+const sendDiscussionBtn = document.getElementById("send-discussion-btn");
+
+// API 信息显示
+const apiModel = document.getElementById("api-model");
+const apiRounds = document.getElementById("api-rounds");
+const apiLastTime = document.getElementById("api-last-time");
+const apiStatus = document.getElementById("api-status");
+const apiRespLen = document.getElementById("api-resp-len");
+
+// 日志
+const logContent = document.getElementById("log-content");
+
+// ========================
+// 3. 日志系统
+// ========================
+function addLog(message, type = "info") {
+  const entry = document.createElement("div");
+  entry.className = `log-entry ${type}`;
+  const time = new Date().toLocaleTimeString("zh-CN", { hour12: false });
+  entry.textContent = `[${time}] ${message}`;
+  logContent.appendChild(entry);
+  logContent.scrollTop = logContent.scrollHeight;
+}
+
+// ========================
+// 4. 更新 API 信息
+// ========================
+function updateApiInfo(status, respLen = null) {
+  apiModel.textContent = "deepseek-chat";
+  apiRounds.textContent = conversationMessages.length - 1; // 减去 system 提示
+  apiLastTime.textContent = new Date().toLocaleTimeString("zh-CN", { hour12: false });
+  apiStatus.textContent = status;
+  if (respLen !== null) {
+    apiRespLen.textContent = respLen + " 字符";
+  } else {
+    apiRespLen.textContent = "—";
+  }
+}
+
+// ========================
+// 5. 登录 / 退出
 // ========================
 loginBtn.addEventListener("click", async () => {
   const nickname = nicknameInput.value.trim();
@@ -66,7 +103,6 @@ loginBtn.addEventListener("click", async () => {
     return;
   }
 
-  // 使用 supabaseClient 代替 supabase
   const { data, error } = await supabaseClient.auth.signInWithPassword({
     email,
     password
@@ -80,21 +116,25 @@ loginBtn.addEventListener("click", async () => {
   currentUser = data.user;
   currentNickname = nickname;
   currentAvatar = `avatars/${nickname}.png`;
+
   loginContainer.classList.add("hidden");
-  chatContainer.classList.remove("hidden");
-  updateUIWithUser();
+  appContainer.classList.remove("hidden");
+  updateUserUI();
   loadDiscussion();
+  addLog(`${nickname} 已登录`, "success");
+  updateApiInfo("就绪");
 });
 
-function updateUIWithUser() {
+function updateUserUI() {
   avatarSmall.src = currentAvatar;
   nicknameDisplay.textContent = currentNickname;
 }
 
 logoutBtn.addEventListener("click", async () => {
+  addLog(`${currentNickname} 退出登录`, "info");
   await supabaseClient.auth.signOut();
   currentUser = null;
-  chatContainer.classList.add("hidden");
+  appContainer.classList.add("hidden");
   loginContainer.classList.remove("hidden");
   nicknameInput.value = "";
   passwordInput.value = "";
@@ -103,10 +143,10 @@ logoutBtn.addEventListener("click", async () => {
   conversationMessages = [
     { role: "system", content: "你是一个有帮助的助手，使用中文回答。" }
   ];
-  modalOverlay.classList.add("hidden");
+  logContent.innerHTML = "";
 });
 
-// 会话保持：刷新页面时检查登录状态
+// 会话保持
 async function checkSession() {
   const { data: { session } } = await supabaseClient.auth.getSession();
   if (session) {
@@ -121,9 +161,11 @@ async function checkSession() {
     if (currentNickname) {
       currentAvatar = `avatars/${currentNickname}.png`;
       loginContainer.classList.add("hidden");
-      chatContainer.classList.remove("hidden");
-      updateUIWithUser();
+      appContainer.classList.remove("hidden");
+      updateUserUI();
       loadDiscussion();
+      addLog(`${currentNickname} 已自动登录`, "success");
+      updateApiInfo("就绪");
     } else {
       await supabaseClient.auth.signOut();
     }
@@ -132,7 +174,7 @@ async function checkSession() {
 checkSession();
 
 // ========================
-// 4. 对话功能（调用 Edge Function 流式响应）
+// 6. 对话功能
 // ========================
 sendBtn.addEventListener("click", sendMessage);
 userInput.addEventListener("keydown", (e) => {
@@ -151,9 +193,13 @@ async function sendMessage() {
   userInput.value = "";
   userInput.style.height = "auto";
   sendBtn.disabled = true;
+  addLog(`发送消息: ${text.slice(0, 30)}…`, "info");
 
   const assistantMsgDiv = appendMessage("assistant", "");
   let fullReply = "";
+
+  const startTime = Date.now();
+  updateApiInfo("请求中...");
 
   try {
     const { data: { session } } = await supabaseClient.auth.getSession();
@@ -201,8 +247,12 @@ async function sendMessage() {
     }
 
     conversationMessages.push({ role: "assistant", content: fullReply });
+    addLog(`接收完成 (${fullReply.length} 字符, 耗时 ${((Date.now() - startTime)/1000).toFixed(1)}s)`, "success");
+    updateApiInfo("成功", fullReply.length);
   } catch (error) {
     assistantMsgDiv.querySelector(".message-bubble").textContent = "请求出错：" + error.message;
+    addLog(`请求失败: ${error.message}`, "error");
+    updateApiInfo("失败");
   } finally {
     sendBtn.disabled = false;
     chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -223,23 +273,8 @@ function appendMessage(role, content) {
 }
 
 // ========================
-// 5. 讨论区功能（读写 Supabase 数据库）
+// 7. 讨论区功能
 // ========================
-discussionBtn.addEventListener("click", () => {
-  modalOverlay.classList.remove("hidden");
-  loadDiscussion();
-});
-
-closeDiscussionBtn.addEventListener("click", () => {
-  modalOverlay.classList.add("hidden");
-});
-
-modalOverlay.addEventListener("click", (e) => {
-  if (e.target === modalOverlay) {
-    modalOverlay.classList.add("hidden");
-  }
-});
-
 async function loadDiscussion() {
   if (!currentUser) return;
   const { data, error } = await supabaseClient
@@ -248,7 +283,7 @@ async function loadDiscussion() {
     .order("created_at", { ascending: true });
 
   if (error) {
-    console.error("加载讨论区失败", error);
+    addLog(`加载讨论区失败: ${error.message}`, "error");
     return;
   }
 
@@ -256,9 +291,8 @@ async function loadDiscussion() {
   data.forEach(msg => {
     const msgDiv = document.createElement("div");
     msgDiv.className = "discuss-msg";
-    const avatarFile = `avatars/${msg.nickname}.png`;
     msgDiv.innerHTML = `
-      <img class="discuss-avatar" src="${avatarFile}" alt="">
+      <img class="discuss-avatar" src="avatars/${msg.nickname}.png" alt="">
       <div>
         <div class="discuss-content">
           <span class="discuss-nickname">${msg.nickname}</span>${escapeHtml(msg.content)}
@@ -291,9 +325,10 @@ async function sendDiscussion() {
     ]);
 
   if (error) {
-    alert("发送失败：" + error.message);
+    addLog(`讨论区发送失败: ${error.message}`, "error");
     return;
   }
+  addLog(`${currentNickname} 在讨论区发言`, "info");
   discussionInput.value = "";
   loadDiscussion();
 }

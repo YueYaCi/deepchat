@@ -3,16 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>DeepChat</title>
-  <!-- Supabase JS SDK -->
+  <title>Deep Chat</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- 自定义样式 -->
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <!-- 登录界面 -->
   <div id="login-container">
-    <h2>DeepChat</h2>
+    <h2>>DeepChat</h2>
     <div class="input-group">
       <label>昵称</label>
       <input type="text" id="nickname-input" placeholder="输入昵称" autocomplete="off">
@@ -25,31 +23,42 @@
     <div id="login-error"></div>
   </div>
 
-  <!-- 主聊天界面（初始隐藏） -->
-  <div id="chat-container" class="hidden">
-    <div id="top-bar">
+  <!-- 主界面（三栏布局） -->
+  <div id="app-container" class="hidden">
+    <!-- 左侧面板：用户信息 + API 信息 + 日志 -->
+    <div id="left-panel">
       <div id="user-info">
         <img id="avatar-small" src="" alt="avatar">
         <span id="nickname-display"></span>
+        <button id="logout-btn" title="退出">⏻</button>
       </div>
-      <div id="top-actions">
-        <button id="discussion-btn">>讨论区</button>
-        <button id="logout-btn">退出</button>
+      <div id="api-info">
+        <div class="info-title">🔧 API 状态</div>
+        <div class="info-item"><span>模型</span><span id="api-model">deepseek-chat</span></div>
+        <div class="info-item"><span>消息轮次</span><span id="api-rounds">0</span></div>
+        <div class="info-item"><span>最后请求</span><span id="api-last-time">—</span></div>
+        <div class="info-item"><span>响应状态</span><span id="api-status">—</span></div>
+        <div class="info-item"><span>最后回复长度</span><span id="api-resp-len">—</span></div>
+      </div>
+      <div id="log-area">
+        <div class="log-title">日志</div>
+        <div id="log-content"></div>
       </div>
     </div>
-    <div id="chat-messages"></div>
-    <div id="input-area">
-      <textarea id="user-input" rows="1" placeholder="输入消息，Enter 发送，Shift+Enter 换行"></textarea>
-      <button id="send-btn">发送</button>
-    </div>
-  </div>
 
-  <!-- 讨论区模态框（初始隐藏） -->
-  <div id="modal-overlay" class="hidden">
+    <!-- 中间面板：对话区 -->
+    <div id="chat-panel">
+      <div id="chat-messages"></div>
+      <div id="input-area">
+        <textarea id="user-input" rows="1" placeholder="输入消息，Enter 发送，Shift+Enter 换行"></textarea>
+        <button id="send-btn">发送</button>
+      </div>
+    </div>
+
+    <!-- 右侧面板：讨论区 -->
     <div id="discussion-panel">
       <div id="discussion-header">
         <h3>讨论区</h3>
-        <button id="close-discussion">&times;</button>
       </div>
       <div id="discussion-messages"></div>
       <div id="discussion-input-area">
@@ -59,7 +68,6 @@
     </div>
   </div>
 
-  <!-- 自定义脚本 -->
   <script src="js/app.js"></script>
 </body>
 </html>
