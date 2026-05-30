@@ -57,12 +57,31 @@
               <span class="btn-icon">▣</span> 测试
             </button>
           </div>
+          <!-- 新增：更多设置按钮，宽度 = 模型 + 测试 -->
+          <div class="actions-row actions-row-full">
+            <button id="api-settings-btn" class="api-action-btn api-settings-btn" aria-label="更多设置">
+              <span class="btn-icon">⚙</span> 更多设置
+            </button>
+          </div>
         </div>
       </div>
       
+      <!-- 日志区（设置展开时隐藏） -->
       <div id="log-area">
         <div class="log-title">日志</div>
         <div id="log-content"></div>
+      </div>
+      
+      <!-- 新增：高级设置面板（展开时取代日志区） -->
+      <div id="api-settings-panel" class="hidden">
+        <div class="settings-header">
+          <span>⚙ 高级设置 — <span id="settings-model-name">DeepSeek V4 Pro</span></span>
+          <button id="settings-close-btn" class="settings-close" aria-label="关闭设置">✕</button>
+        </div>
+        <div id="settings-content"></div>
+        <div class="settings-footer">
+          <button id="settings-reset-btn" class="api-action-btn">↺ 恢复默认</button>
+        </div>
       </div>
     </aside>
 

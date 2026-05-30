@@ -66,7 +66,14 @@ const DOM = (() => {
       testBtn: $("api-test-btn"),
       testStatus: $("api-test-status"),
       modelBtn: $("model-select-btn"),
-      info: $("api-info")
+      info: $("api-info"),
+      settingsBtn: $("api-settings-btn"),
+      settingsPanel: $("api-settings-panel"),
+      settingsClose: $("settings-close-btn"),
+      settingsReset: $("settings-reset-btn"),
+      settingsContent: $("settings-content"),
+      settingsModelName: $("settings-model-name"),
+      logArea: $("log-area")
     },
     log: $("log-content")
   };
@@ -80,7 +87,6 @@ const Utils = {
     return text.replace(/[&<<>"']/g, m => map[m]);
   },
 
-  // FIX: 使用 getComputedStyle 读取 CSS 中的 max-height
   autoResize(textarea) {
     if (!textarea) return;
     textarea.style.height = 'auto';
@@ -119,7 +125,6 @@ const Utils = {
     fn(consoleMsg);
   },
 
-  // 简易 Markdown 代码块解析（仅处理 ``` 代码块与行内代码）
   formatContent(text) {
     if (!text) return '';
     const blocks = [];
@@ -280,7 +285,11 @@ const API = {
       const response = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/deepseek-proxy`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ messages: [{ role: "user", content: "Hi" }], provider: State.model.provider })
+        body: JSON.stringify({
+          messages: [{ role: "user", content: "Hi" }],
+          provider: State.model.provider,
+          settings: Settings.get()
+        })
       });
 
       const returnedUrl = response.headers.get("X-Actual-API-URL");
@@ -418,6 +427,9 @@ const UI = {
 
     UI.closeDropdown();
     Utils.addLog("INFO", "APP", "Context cleared");
+
+    // 若设置面板正打开，刷新参数列表
+    if (Settings.isOpen) Settings.render();
   },
 
   closeDropdown() {
@@ -454,7 +466,11 @@ const Chat = {
       const response = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/deepseek-proxy`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ messages: State.messages, provider: State.model.provider })
+        body: JSON.stringify({
+          messages: State.messages,
+          provider: State.model.provider,
+          settings: Settings.get()
+        })
       });
 
       const returnedUrl = response.headers.get("X-Actual-API-URL");
@@ -515,13 +531,10 @@ const Chat = {
             fullReply += delta;
             bubbleEl.textContent = fullReply;
           }
-        } catch (e) {
-          // 忽略无法解析的行
-        }
+        } catch (e) {}
       }
     }
 
-    // 流结束后渲染完整 Markdown
     bubbleEl.innerHTML = Utils.formatContent(fullReply);
     return fullReply;
   }
@@ -560,7 +573,6 @@ const Discuss = {
     const preview = content.slice(0, 50);
     Utils.addLog("INFO", "DISCUSS", "Sending message", { length: content.length, preview });
 
-    // FIX: 乐观更新——立即本地渲染自己的消息
     const tempMsg = {
       id: `temp-${Date.now()}`,
       user_id: State.user.id,
@@ -582,7 +594,6 @@ const Discuss = {
       Utils.autoResize(input);
     } catch (err) {
       Utils.addLog("ERROR", "DB", "Insert failed", { error: err.message });
-      // 标记临时消息为失败
       const tempEl = DOM.discuss.messages.querySelector(`[data-msg-id="${tempMsg.id}"]`);
       if (tempEl) tempEl.classList.add('failed');
     } finally {
@@ -597,7 +608,6 @@ const Discuss = {
     State.channel = supabaseClient
       .channel('public:messages')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
-        // 过滤自己的消息（已由乐观更新显示）
         if (payload.new.user_id === State.user?.id) return;
         UI.appendDiscussMessage(payload.new, false);
         Utils.addLog("INFO", "DISCUSS", "Realtime message received", { from: payload.new.nickname });
@@ -616,10 +626,133 @@ const Discuss = {
   }
 };
 
+// ===================== 新增：高级设置模块 =====================
+const Settings = {
+  defaults: {
+    deepseek: { temperature: 1.0, max_tokens: 4096, top_p: 1.0, presence_penalty: 0, frequency_penalty: 0 },
+    mimo: { temperature: 0.7, max_tokens: 4096, top_p: 1.0 }
+  },
+
+  params: {},
+  isOpen: false,
+
+  init() {
+    try {
+      const saved = sessionStorage.getItem('dc_api_settings');
+      this.params = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(this.defaults));
+    } catch {
+      this.params = JSON.parse(JSON.stringify(this.defaults));
+    }
+    this.bind();
+  },
+
+  get() {
+    return this.params[State.model.provider] || {};
+  },
+
+  buildSlider(key, label, value, min, max, step, desc) {
+    return `
+      <div class="setting-item">
+        <div class="setting-label">
+          <span>${label}</span>
+          <span class="setting-value" id="val-${key}">${value}</span>
+        </div>
+        <input type="range" class="setting-slider" id="inp-${key}" 
+          min="${min}" max="${max}" step="${step}" value="${value}" data-key="${key}">
+        <div class="setting-desc">${desc}</div>
+      </div>
+    `;
+  },
+
+  buildNumber(key, label, value, min, max, desc) {
+    return `
+      <div class="setting-item">
+        <div class="setting-label">
+          <span>${label}</span>
+          <span class="setting-value" id="val-${key}">${value}</span>
+        </div>
+        <input type="number" class="setting-number" id="inp-${key}" 
+          min="${min}" max="${max}" value="${value}" data-key="${key}">
+        <div class="setting-desc">${desc}</div>
+      </div>
+    `;
+  },
+
+  render() {
+    const container = DOM.api.settingsContent;
+    const provider = State.model.provider;
+    const values = this.get();
+    const modelLabel = State.model.label;
+
+    DOM.api.settingsModelName.textContent = modelLabel;
+
+    let html = '';
+    if (provider === 'deepseek') {
+      html += this.buildSlider('temperature', 'Temperature', values.temperature, 0, 2, 0.1, '随机性：越高回答越发散，越低越确定（0~2）');
+      html += this.buildNumber('max_tokens', 'Max Tokens', values.max_tokens, 1, 8192, '生成文本的最大长度（1~8192）');
+      html += this.buildSlider('top_p', 'Top P', values.top_p, 0, 1, 0.05, '核采样概率阈值（0~1）');
+      html += this.buildSlider('presence_penalty', 'Presence Penalty', values.presence_penalty, -2, 2, 0.1, '话题新颖度惩罚，越高越避免重复主题（-2~2）');
+      html += this.buildSlider('frequency_penalty', 'Frequency Penalty', values.frequency_penalty, -2, 2, 0.1, '用词重复度惩罚，越高越避免重复用词（-2~2）');
+    } else if (provider === 'mimo') {
+      html += this.buildSlider('temperature', 'Temperature', values.temperature, 0, 2, 0.1, '随机性：越高回答越发散，越低越确定（0~2）');
+      html += this.buildNumber('max_tokens', 'Max Tokens', values.max_tokens, 1, 32768, '生成文本的最大长度（1~32768）');
+      html += this.buildSlider('top_p', 'Top P', values.top_p, 0, 1, 0.05, '核采样概率阈值（0~1）');
+    }
+
+    container.innerHTML = html;
+
+    container.querySelectorAll('input').forEach(inp => {
+      inp.addEventListener('input', (e) => {
+        const key = e.target.dataset.key;
+        const val = e.target.type === 'number' ? parseInt(e.target.value) : parseFloat(e.target.value);
+        this.params[provider][key] = val;
+
+        const display = document.getElementById(`val-${key}`);
+        if (display) display.textContent = val;
+
+        sessionStorage.setItem('dc_api_settings', JSON.stringify(this.params));
+      });
+    });
+  },
+
+  toggle() {
+    const panel = DOM.api.settingsPanel;
+    const logArea = DOM.api.logArea;
+    const btn = DOM.api.settingsBtn;
+
+    this.isOpen = !this.isOpen;
+
+    if (this.isOpen) {
+      this.render();
+      panel.classList.remove('hidden');
+      logArea.classList.add('hidden');
+      btn.classList.add('active');
+      Utils.addLog("INFO", "SETTINGS", "Panel opened", { provider: State.model.provider, params: this.get() });
+    } else {
+      panel.classList.add('hidden');
+      logArea.classList.remove('hidden');
+      btn.classList.remove('active');
+    }
+  },
+
+  reset() {
+    const provider = State.model.provider;
+    this.params[provider] = JSON.parse(JSON.stringify(this.defaults[provider]));
+    sessionStorage.setItem('dc_api_settings', JSON.stringify(this.params));
+    this.render();
+    Utils.addLog("INFO", "SETTINGS", "Reset to defaults", { provider });
+  },
+
+  bind() {
+    DOM.api.settingsBtn.addEventListener('click', () => this.toggle());
+    DOM.api.settingsClose.addEventListener('click', () => this.toggle());
+    DOM.api.settingsReset.addEventListener('click', () => this.reset());
+  }
+};
+
 // ===================== 事件绑定 =====================
 const Events = {
   bind() {
-    // 登录
     DOM.login.btn.addEventListener("click", Auth.login);
     DOM.login.nickname.addEventListener("keydown", (e) => {
       if (e.key === "Enter") Auth.login();
@@ -628,10 +761,8 @@ const Events = {
       if (e.key === "Enter") Auth.login();
     });
 
-    // 退出
     DOM.app.logout.addEventListener("click", Auth.logout);
 
-    // 对话
     DOM.chat.send.addEventListener("click", Chat.send);
     DOM.chat.input.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
@@ -641,7 +772,6 @@ const Events = {
     });
     DOM.chat.input.addEventListener("input", () => Utils.autoResize(DOM.chat.input));
 
-    // 讨论区
     DOM.discuss.send.addEventListener("click", Discuss.send);
     DOM.discuss.input.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
@@ -651,11 +781,9 @@ const Events = {
     });
     DOM.discuss.input.addEventListener("input", () => Utils.autoResize(DOM.discuss.input));
 
-    // API 控制
     DOM.api.modelBtn.addEventListener("click", UI.toggleModelDropdown);
     DOM.api.testBtn.addEventListener("click", API.test);
 
-    // 全局交互
     document.addEventListener("click", (e) => {
       if (State.dropdownOpen && !e.target.closest("#api-info")) {
         UI.closeDropdown();
@@ -666,6 +794,9 @@ const Events = {
       if (e.key === "Escape" && State.dropdownOpen) {
         UI.closeDropdown();
       }
+      if (e.key === "Escape" && Settings.isOpen) {
+        Settings.toggle();
+      }
     });
   }
 };
@@ -675,6 +806,7 @@ const App = {
   init() {
     supabaseClient = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
     Events.bind();
+    Settings.init();
     Auth.restore();
     Utils.addLog("INFO", "APP", "Application initialized");
   }
