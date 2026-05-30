@@ -12,7 +12,7 @@ const CONFIG = {
   MODELS: [
     { name: "deepseek-v4-pro", provider: "deepseek", label: "DeepSeek V4 Pro", avatar: "avatars/deepseek.png" },
     { name: "mimo-v2.5", provider: "mimo", label: "MiMo V2.5", avatar: "avatars/xiaomi.png" },
-    { name: "kimi-k2-6", provider: "kimi", label: "Kimi K2.6", avatar: "avatars/kimi.png" }
+    { name: "kimi-k2.6", provider: "kimi", label: "Kimi K2.6", avatar: "avatars/kimi.png" }
   ]
 };
 
