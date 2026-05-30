@@ -3,35 +3,41 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="description" content="Deep Chat - 私人 AI 对话与讨论平台">
   <title>Deep Chat</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <!-- 登录界面 -->
+  <!-- ==================== 登录界面 ==================== -->
   <div id="login-container">
     <h2>Deep Chat</h2>
     <div class="input-group">
-      <label>昵称</label>
-      <input type="text" id="nickname-input" placeholder="输入昵称" autocomplete="off">
+      <label for="nickname-input">昵称</label>
+      <input type="text" id="nickname-input" placeholder="输入昵称" autocomplete="off" aria-label="昵称">
     </div>
     <div class="input-group">
-      <label>密码</label>
-      <input type="password" id="password-input" placeholder="输入密码">
+      <label for="password-input">密码</label>
+      <input type="password" id="password-input" placeholder="输入密码" aria-label="密码">
     </div>
-    <button id="login-btn">登录</button>
-    <div id="login-error"></div>
+    <button id="login-btn" aria-label="登录">
+      <span class="btn-text">登录</span>
+      <span class="btn-loader hidden"></span>
+    </button>
+    <div id="login-error" role="alert"></div>
   </div>
 
-  <!-- 主界面 -->
+  <!-- ==================== 主界面 ==================== -->
   <div id="app-container" class="hidden">
-    <!-- 左侧面板 -->
-    <div id="left-panel">
+    
+    <!-- ---------- 左侧面板 ---------- -->
+    <aside id="left-panel">
       <div id="user-info">
         <img id="avatar-small" src="" alt="avatar">
         <span id="nickname-display"></span>
-        <button id="logout-btn" title="退出">⏻</button>
+        <button id="logout-btn" title="退出登录" aria-label="退出登录">⏻</button>
       </div>
+      
       <div id="api-info">
         <div class="info-title">🔧 API 状态</div>
         <div class="info-item"><span>模型</span><span id="api-model">deepseek-v4-pro</span></div>
@@ -40,40 +46,59 @@
         <div class="info-item"><span>最后请求</span><span id="api-last-time">—</span></div>
         <div class="info-item"><span>响应状态</span><span id="api-status">—</span></div>
         <div class="info-item"><span>最后回复长度</span><span id="api-resp-len">—</span></div>
+        
         <div id="api-actions">
           <div id="api-test-status" class="api-status-message hidden"></div>
           <div class="actions-row">
-            <button id="model-select-btn" class="api-action-btn"><span class="btn-icon">|</span> 模型<</button>
-            <button id="api-test-btn" class="api-action-btn"><span class="btn-icon">|</span> 测试<</button>
+            <button id="model-select-btn" class="api-action-btn" aria-label="切换模型">
+              <span class="btn-icon">◈</span> 模型
+            </button>
+            <button id="api-test-btn" class="api-action-btn" aria-label="测试 API">
+              <span class="btn-icon">▣</span> 测试
+            </button>
           </div>
         </div>
       </div>
+      
       <div id="log-area">
         <div class="log-title">日志</div>
         <div id="log-content"></div>
       </div>
-    </div>
+    </aside>
 
-    <!-- 中间对话面板 -->
-    <div id="chat-panel">
+    <!-- ---------- 中间对话面板 ---------- -->
+    <main id="chat-panel">
       <div id="chat-messages"></div>
       <div id="input-area">
-        <textarea id="user-input" rows="1" placeholder="输入消息，Enter 发送，Shift+Enter 换行"></textarea>
-        <button id="send-btn">发送</button>
+        <textarea 
+          id="user-input" 
+          rows="1" 
+          placeholder="输入消息，Enter 发送，Shift+Enter 换行"
+          aria-label="消息输入框"
+        ></textarea>
+        <button id="send-btn" aria-label="发送">
+          <span class="btn-text">发送</span>
+          <span class="btn-loader hidden"></span>
+        </button>
       </div>
-    </div>
+    </main>
 
-    <!-- 右侧讨论区 -->
-    <div id="discussion-panel">
+    <!-- ---------- 右侧讨论区 ---------- -->
+    <aside id="discussion-panel">
       <div id="discussion-header">
         <h3>讨论区</h3>
       </div>
       <div id="discussion-messages"></div>
       <div id="discussion-input-area">
-        <textarea id="discussion-input" rows="1" placeholder="说点什么...（Enter 发送，Shift+Enter 换行）"></textarea>
-        <button id="send-discussion-btn">发送</button>
+        <textarea 
+          id="discussion-input" 
+          rows="1" 
+          placeholder="说点什么...（Enter 发送，Shift+Enter 换行）"
+          aria-label="讨论区输入框"
+        ></textarea>
+        <button id="send-discussion-btn" aria-label="发送讨论消息">发送</button>
       </div>
-    </div>
+    </aside>
   </div>
 
   <script src="js/app.js"></script>
