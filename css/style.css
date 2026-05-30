@@ -871,3 +871,77 @@ body::before {
   #discussion-panel { width: 220px; min-width: 220px; }
   #chat-panel { min-width: 320px; }
 }
+
+/* ==================== 代码块：头部栏与复制按钮 ==================== */
+.code-block-outer {
+  margin: 0.6rem 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.code-block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.35rem 0.7rem;
+  background: rgba(30, 35, 45, 0.9);
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.78rem;
+}
+
+.code-lang {
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+}
+
+.code-copy-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: transparent;
+  border: 1px solid rgba(48, 54, 61, 0.6);
+  color: var(--color-text-secondary);
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.code-copy-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: rgba(0, 188, 190, 0.1);
+}
+
+.code-copy-btn.copied {
+  border-color: var(--color-success);
+  color: var(--color-success);
+  background: rgba(63, 185, 80, 0.15);
+}
+
+.code-copy-btn svg {
+  stroke: currentColor;
+  display: block;
+}
+
+/* 调整原有代码块以适配头部 */
+.code-block-wrapper {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+/* ==================== 语法高亮颜色 ==================== */
+.hl-keyword { color: #569cd6; font-weight: 600; }
+.hl-string  { color: #ce9178; }
+.hl-comment { color: #6a9955; font-style: italic; }
+.hl-number  { color: #b5cea8; }
+.hl-function{ color: #dcdcaa; }
