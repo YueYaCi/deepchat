@@ -12,7 +12,7 @@ const CONFIG = {
   MODELS: [
     { name: "deepseek-v4-pro", provider: "deepseek", label: "DeepSeek V4 Pro", avatar: "avatars/deepseek.png" },
     { name: "mimo-v2.5", provider: "mimo", label: "MiMo V2.5", avatar: "avatars/xiaomi.png" },
-    { name: "kimi-k2.6", provider: "kimi", label: "Kimi K2.6", avatar: "avatars/kimi.png" }
+    { name: "kimi-k2-6", provider: "kimi", label: "Kimi K2.6", avatar: "avatars/kimi.png" }
   ]
 };
 
@@ -391,7 +391,6 @@ const UI = {
     const row = document.createElement("div");
     row.className = `message-row ${role}`;
 
-    // FIX: 动态查找当前模型头像，避免新增模型后硬编码失效
     const avatarSrc = role === 'user'
       ? State.avatar
       : (CONFIG.MODELS.find(m => m.provider === State.model.provider)?.avatar || 'avatars/deepseek.png');
@@ -677,8 +676,7 @@ const Settings = {
   defaults: {
     deepseek: { temperature: 1.0, max_tokens: 4096, top_p: 1.0, presence_penalty: 0, frequency_penalty: 0 },
     mimo: { temperature: 0.7, max_tokens: 4096, top_p: 1.0 },
-    // Kimi: temperature 范围 [0,1]；思考模式固定 1.0，非思考模式固定 0.6
-    kimi: { temperature: 1.0, max_tokens: 4096, top_p: 1.0, presence_penalty: 0, frequency_penalty: 0 }
+    kimi: { temperature: 1.0, max_tokens: 32768, top_p: 0.95, presence_penalty: 0, frequency_penalty: 0 }
   },
 
   params: {},
@@ -694,34 +692,33 @@ const Settings = {
     this.bind();
   },
 
-  get() {
-    const provider = State.model.provider;
-    return this.params[provider] || {};
-  },
-
-  buildSlider(key, label, value, min, max, step, desc) {
+  buildSlider(key, label, value, min, max, step, desc, disabled = false) {
+    const disAttr = disabled ? 'disabled' : '';
+    const disClass = disabled ? 'setting-disabled' : '';
     return `
-      <div class="setting-item">
+      <div class="setting-item ${disClass}">
         <div class="setting-label">
           <span>${label}</span>
           <span class="setting-value" id="val-${key}">${value}</span>
         </div>
         <input type="range" class="setting-slider" id="inp-${key}" 
-          min="${min}" max="${max}" step="${step}" value="${value}" data-key="${key}">
+          min="${min}" max="${max}" step="${step}" value="${value}" data-key="${key}" ${disAttr}>
         <div class="setting-desc">${desc}</div>
       </div>
     `;
   },
 
-  buildNumber(key, label, value, min, max, desc) {
+  buildNumber(key, label, value, min, max, desc, disabled = false) {
+    const disAttr = disabled ? 'disabled' : '';
+    const disClass = disabled ? 'setting-disabled' : '';
     return `
-      <div class="setting-item">
+      <div class="setting-item ${disClass}">
         <div class="setting-label">
           <span>${label}</span>
           <span class="setting-value" id="val-${key}">${value}</span>
         </div>
         <input type="number" class="setting-number" id="inp-${key}" 
-          min="${min}" max="${max}" value="${value}" data-key="${key}">
+          min="${min}" max="${max}" value="${value}" data-key="${key}" ${disAttr}>
         <div class="setting-desc">${desc}</div>
       </div>
     `;
@@ -747,17 +744,43 @@ const Settings = {
       html += this.buildNumber('max_tokens', 'Max Tokens', values.max_tokens, 1, 32768, '最大生成 token 数，限制模型输出的总长度。（范围：1–32768）');
       html += this.buildSlider('top_p', 'Top P', values.top_p, 0, 1, 0.05, '核采样阈值，控制候选词集的累积概率质量。（范围：0–1）');
     } else if (provider === 'kimi') {
-      // Kimi 官方约束：temperature 范围 [0,1]；思考模式固定 1.0，非思考模式固定 0.6
-      html += this.buildSlider('temperature', 'Temperature', values.temperature, 0, 1, 0.1, '【Kimi 约束】取值范围 [0–1]。思考模式固定 1.0（默认），非思考模式固定 0.6；建议不要显式设置，或严格按模型要求填写，否则将返回 invalid_request_error。');
-      html += this.buildNumber('max_tokens', 'Max Tokens', values.max_tokens, 1, 8192, '生成 token 的上限，控制单次响应的最大长度。（范围：1–8192）');
-      html += this.buildSlider('top_p', 'Top P', values.top_p, 0, 1, 0.05, '核采样（Nucleus Sampling）阈值。（范围：0–1）');
-      html += this.buildSlider('presence_penalty', 'Presence Penalty', values.presence_penalty, -2, 2, 0.1, '存在惩罚，提升话题新颖度。（范围：-2.0–2.0）');
-      html += this.buildSlider('frequency_penalty', 'Frequency Penalty', values.frequency_penalty, -2, 2, 0.1, '频率惩罚，降低重复用词概率。（范围：-2.0–2.0）');
+      // 新增：问号图标 + 悬浮提示
+      const tooltipHtml = `
+        <div class="settings-tooltip-wrapper">
+          <button class="settings-help-btn" aria-label="参数说明">?</button>
+          <div class="settings-tooltip">
+            <div class="tooltip-title">Kimi K2.6 参数约束</div>
+            <div class="tooltip-body">
+              <p>以下参数已由模型固定，不可调整：</p>
+              <div class="tooltip-code">
+                <div class="code-line"><span class="code-key">temperature</span>: <span class="code-val">思考模式固定 1.0，非思考模式固定 0.6</span></div>
+                <div class="code-line"><span class="code-key">top_p</span>: <span class="code-val">固定 0.95</span></div>
+                <div class="code-line"><span class="code-key">n</span>: <span class="code-val">固定 1</span></div>
+                <div class="code-line"><span class="code-key">presence_penalty</span>: <span class="code-val">固定 0.0</span></div>
+                <div class="code-line"><span class="code-key">frequency_penalty</span>: <span class="code-val">固定 0.0</span></div>
+              </div>
+              <p class="tooltip-note">建议不要手动设置这些字段，使用默认值即可。</p>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // 在 header 中插入问号
+      const headerEl = DOM.api.settingsPanel.querySelector('.settings-header');
+      if (headerEl && !headerEl.querySelector('.settings-help-btn')) {
+        headerEl.insertAdjacentHTML('beforeend', tooltipHtml);
+      }
+
+      html += this.buildSlider('temperature', 'Temperature', values.temperature, 0, 1, 0.1, '【固定值】思考模式固定 1.0，非思考模式固定 0.6。Kimi K2.6 不接受其他值。', true);
+      html += this.buildNumber('max_tokens', 'Max Tokens', values.max_tokens, 1, 32768, '【可调整】生成 token 上限，默认 32768。（范围：1–32768）', false);
+      html += this.buildSlider('top_p', 'Top P', values.top_p, 0, 1, 0.05, '【固定值】Kimi K2.6 强制使用 0.95，不可更改。', true);
+      html += this.buildSlider('presence_penalty', 'Presence Penalty', values.presence_penalty, -2, 2, 0.1, '【固定值】Kimi K2.6 强制使用 0.0，不可更改。', true);
+      html += this.buildSlider('frequency_penalty', 'Frequency Penalty', values.frequency_penalty, -2, 2, 0.1, '【固定值】Kimi K2.6 强制使用 0.0，不可更改。', true);
     }
 
     container.innerHTML = html;
 
-    container.querySelectorAll('input').forEach(inp => {
+    container.querySelectorAll('input:not([disabled])').forEach(inp => {
       inp.addEventListener('input', (e) => {
         const key = e.target.dataset.key;
         const val = e.target.type === 'number' ? parseInt(e.target.value) : parseFloat(e.target.value);
@@ -788,6 +811,9 @@ const Settings = {
       panel.classList.add('hidden');
       logArea.classList.remove('hidden');
       btn.classList.remove('active');
+      // 清理问号图标，避免下次渲染重复
+      const helpBtn = panel.querySelector('.settings-tooltip-wrapper');
+      if (helpBtn) helpBtn.remove();
     }
   },
 
@@ -843,6 +869,10 @@ const Events = {
     document.addEventListener("click", (e) => {
       if (State.dropdownOpen && !e.target.closest("#api-info")) {
         UI.closeDropdown();
+      }
+      // 点击外部关闭 tooltip
+      if (!e.target.closest('.settings-tooltip-wrapper')) {
+        document.querySelectorAll('.settings-tooltip.visible').forEach(t => t.classList.remove('visible'));
       }
     });
 
